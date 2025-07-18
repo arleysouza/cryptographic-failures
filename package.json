@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node ./src",
-    "dev": "ts-node-dev ./src",
-    "dev-https": "ts-node ./src/index-https"
+    "dev": "ts-node-dev ./src"
   },
   "keywords": [],
   "author": "",

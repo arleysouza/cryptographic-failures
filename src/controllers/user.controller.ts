@@ -10,14 +10,14 @@ import { encryptionIv, encryptionKey } from "../config/cryptoConfig";
 const algorithm = "aes-256-cbc"; // Especifica o algoritmo simétrico AES (Advanced Encryption Standard);
 const key = crypto.randomBytes(32); // Gera chave aleatória de 256 bits (32 bytes)
 const iv = crypto.randomBytes(16); // Gera IV aleatório de 128 bits (16 bytes)
-
+/*
 function encrypt(text: string) {
   const cipher = crypto.createCipheriv(algorithm, key, iv);
   let encrypted = cipher.update(text, "utf-8", "hex");
   encrypted += cipher.final("hex");
   return encrypted;
 }
-/*
+*/
 // Exercício 1 - modificação necessária para usar a chave de criptografia do arquivo cryptoConfig.ts
 export function encrypt(text: string): string {
   const cipher = crypto.createCipheriv(algorithm, encryptionKey, encryptionIv);
@@ -25,15 +25,15 @@ export function encrypt(text: string): string {
   encrypted += cipher.final("hex");
   return encrypted;
 }
-*/
 
+/*
 function decrypt(encrypted: string) {
   const decipher = crypto.createDecipheriv(algorithm, key, iv);
   let decrypted = decipher.update(encrypted, "hex", "utf-8");
   decrypted += decipher.final("utf-8");
   return decrypted;
-}
-/*
+}*/
+
 // Exercício 2 - modificação necessária para usar a chave de criptografia do arquivo cryptoConfig.ts
 export function decrypt(encryptedText: string): string {
   const decipher = crypto.createDecipheriv(
@@ -45,7 +45,7 @@ export function decrypt(encryptedText: string): string {
   decrypted += decipher.final("utf8");
   return decrypted;
 }
-*/
+
 export async function register(req: Request, res: Response) {
   const { username, password, email } = req.body;
 
@@ -147,7 +147,7 @@ export async function loginSecure(req: Request, res: Response) {
 
     // 3. Buscar usuário por email criptografado
     const encryptedEmail = encrypt(email);
-
+console.log("Email criptografado:", encryptedEmail );
     const result = await db.query("SELECT * FROM users WHERE email = $1", [
       encryptedEmail,
     ]);
