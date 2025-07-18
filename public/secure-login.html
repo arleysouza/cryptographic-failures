@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login Seguro</title>
+  </head>
+  <body>
+    <h2>Login com criptografia híbrida (AES + RSA-OAEP)</h2>
+
+    <form id="secure-login-form">
+      <label>Email:</label><br />
+      <input
+        type="email"
+        name="email"
+        value="teste@test.com"
+        required
+      /><br /><br />
+
+      <label>Senha:</label><br />
+      <input type="password" name="password" value="123" required /><br /><br />
+
+      <button type="submit">Entrar</button>
+    </form>
+
+    <p id="login-response" style="font-weight: bold"></p>
+
+    <!-- Bibliotecas -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsrsasign@10.5.25/lib/jsrsasign-all-min.js"></script>
+
+    <script>
+      const form = document.getElementById("secure-login-form");
+      const responseEl = document.getElementById("login-response");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        const payload = JSON.stringify(data);
+
+        try {
+          const aesKeyWordArray = CryptoJS.lib.WordArray.random(16);
+          const aesKeyBase64 = CryptoJS.enc.Base64.stringify(aesKeyWordArray);
+          const encryptedData = CryptoJS.AES.encrypt(payload, aesKeyWordArray, {
+            mode: CryptoJS.mode.ECB,
+            padding: CryptoJS.pad.Pkcs7,
+          }).toString();
+
+          const pubKeyPem = await fetch("/api/crypto/public-key").then((res) =>
+            res.text()
+          );
+          const encryptedKey = await encryptAESKeyWithRSA_OAEP(
+            pubKeyPem,
+            aesKeyBase64
+          );
+
+          const res = await fetch("/api/user/login-secure", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ encryptedKey, encryptedData }),
+          });
+
+          const json = await res.json();
+
+          if (res.ok) {
+            responseEl.style.color = "green";
+            responseEl.textContent = json.message;
+          } else {
+            responseEl.style.color = "red";
+            responseEl.textContent = json.error || "Falha no login.";
+          }
+        } catch (error) {
+          responseEl.style.color = "red";
+          responseEl.textContent = "Erro ao enviar requisição.";
+        }
+      });
+
+      async function encryptAESKeyWithRSA_OAEP(pubKeyPem, aesKeyBase64) {
+        const pemContents = pubKeyPem
+          .replace("-----BEGIN PUBLIC KEY-----", "")
+          .replace("-----END PUBLIC KEY-----", "")
+          .replace(/\s/g, "");
+        const binaryDer = window.atob(pemContents);
+        const binaryDerBuffer = new Uint8Array(
+          [...binaryDer].map((c) => c.charCodeAt(0))
+        );
+
+        const cryptoKey = await window.crypto.subtle.importKey(
+          "spki",
+          binaryDerBuffer,
+          { name: "RSA-OAEP", hash: "SHA-256" },
+          false,
+          ["encrypt"]
+        );
+
+        const aesKeyBuffer = new TextEncoder().encode(aesKeyBase64);
+        const encrypted = await window.crypto.subtle.encrypt(
+          { name: "RSA-OAEP" },
+          cryptoKey,
+          aesKeyBuffer
+        );
+
+        return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+      }
+    </script>
+  </body>
+</html>
