@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres-container
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: bdaula
+    ports:
+      # Mapeia a porta externa 5433 (host) para a 5432 (container)
+      - "5433:5432"  
+    volumes:
+      - meu-volume:/var/lib/postgresql/data
+      - ./db/comandos.sql:/docker-entrypoint-initdb.d/comandos.sql:ro
+    networks:
+      - minha-rede
+
+  server:
+    build:
+      context: ./server
+    container_name: server-container
+    ports:
+      - "3002:3000"
+    environment:
+      PORT: 3000
+      DB_HOST: postgres # o nome do serviço "postgres" funciona como hostname
+      DB_USER: postgres
+      DB_PASSWORD: 123
+      DB_DATABASE: bdaula
+      DB_PORT: 5432 # Dentro do container, a porta do Postgres é 5432
+      NODE_ENV: production
+    depends_on:
+      - postgres
+    networks:
+      - minha-rede
+      
+volumes:
+  meu-volume:
+
+networks:
+  minha-rede:
+    driver: bridge
